@@ -1,7 +1,7 @@
 from __future__ import print_function
 import json
 import os
-import pyjq
+import shared.pyjq_compat as pyjq
 
 from shared.nodes import Account, Region, is_public_ip
 from commands.prepare import build_data_structure

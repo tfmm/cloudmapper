@@ -8,7 +8,7 @@ import json
 import time
 import boto3
 import yaml
-import pyjq
+import shared.pyjq_compat as pyjq
 import urllib.parse
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError
 from shared.common import get_account, custom_serializer

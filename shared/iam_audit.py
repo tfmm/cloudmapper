@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-import pyjq
+import shared.pyjq_compat as pyjq
 import traceback
 import re
 import os.path

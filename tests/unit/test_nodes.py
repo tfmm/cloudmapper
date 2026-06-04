@@ -24,7 +24,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import unittest
-from nose.tools import assert_equal, assert_true, assert_false
+from .nose_compat import assert_equal, assert_true, assert_false
 
 from shared.nodes import truncate, get_name, is_public_ip, Account
 
