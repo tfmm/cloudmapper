@@ -132,13 +132,13 @@ class TestPrepare(unittest.TestCase):
             1, len(pyjq.all('.[].data|select(.type == "elbv2")|keys', cytoscape_json))
         )
         assert_equal(
-            4, len(pyjq.all('.[].data|select(.type == "subnet")|keys', cytoscape_json))
+            6, len(pyjq.all('.[].data|select(.type == "subnet")|keys', cytoscape_json))
         )
         assert_equal(
-            1, len(pyjq.all('.[].data|select(.type == "region")|keys', cytoscape_json))
+            2, len(pyjq.all('.[].data|select(.type == "region")|keys', cytoscape_json))
         )
         assert_equal(
-            1, len(pyjq.all('.[].data|select(.type == "vpc")|keys', cytoscape_json))
+            3, len(pyjq.all('.[].data|select(.type == "vpc")|keys', cytoscape_json))
         )
         assert_equal(
             1, len(pyjq.all('.[].data|select(.type == "sqs")|keys', cytoscape_json))

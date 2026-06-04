@@ -515,6 +515,8 @@ def build_data_structure(account_data, config, outputfilter):
 
                 resource_data = query_aws(account, resource["source"])
                 if not resource_data:
+                    resource_data = query_aws(account, resource["source"], "us-east-1")
+                if not resource_data:
                     continue
 
                 q = resource["query"]
@@ -566,7 +568,11 @@ def build_data_structure(account_data, config, outputfilter):
                 if resource["source"] in skipped_sources:
                     continue
                 if resource["name"] == "S3 buckets":
-                    s3_data = query_aws(account, "s3-list-buckets")
+                    s3_data = query_aws(account, "s3-list-buckets", region)
+                    if not s3_data:
+                        s3_data = query_aws(account, "s3-list-buckets")
+                    if not s3_data:
+                        s3_data = query_aws(account, "s3-list-buckets", "us-east-1")
                     if not s3_data:
                         continue
                     buckets = pyjq.all(".Buckets[]?", s3_data)
@@ -716,6 +722,8 @@ def build_data_structure(account_data, config, outputfilter):
     connections = {}
     for region in account.children:
         for vpc in region.children:
+            if vpc.local_id in ["vpc-non-vpc", "vpc-global"]:
+                continue
             for c, reasons in get_connections(cidrs, vpc, outputfilter).items():
                 r = connections.get(c, [])
                 r.extend(reasons)
