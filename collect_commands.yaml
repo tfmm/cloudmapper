@@ -215,13 +215,6 @@
     Value: cloudformation-describe-stacks.json|.Stacks[]?|.StackName
 - Service: cloudfront
   Request: list-distributions
-- Service: cloudsearch
-  Request: describe-domains
-- Service: cloudsearch
-  Request: describe-service-access-policies
-  Parameters:
-  - Name: DomainName
-    Value: cloudsearch-describe-domains.json|.DomainStatusList[]?|.DomainName
 - Service: cloudwatch
   Request: describe-alarms
 - Service: config
