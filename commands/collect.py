@@ -8,7 +8,7 @@ import json
 import time
 import boto3
 import yaml
-import pyjq
+import shared.pyjq_compat as pyjq
 import urllib.parse
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError
 from shared.common import get_account, custom_serializer
@@ -238,16 +238,27 @@ def collect(arguments):
         if default_region not in regions_filter:
             regions_filter.append(default_region)
 
+    import botocore.exceptions
+
     session_data = {"region_name": default_region}
 
     if arguments.profile_name:
         session_data["profile_name"] = arguments.profile_name
 
-    session = boto3.Session(**session_data)
-
-    sts = session.client("sts")
     try:
+        session = boto3.Session(**session_data)
+        sts = session.client("sts")
         sts.get_caller_identity()
+    except (botocore.exceptions.UnauthorizedSSOTokenError,
+            botocore.exceptions.SSOTokenLoadError,
+            botocore.exceptions.TokenRetrievalError) as e:
+        profile_part = f" --profile {arguments.profile_name}" if arguments.profile_name else ""
+        print(
+            "ERROR: AWS SSO / IAM Identity Center authentication failed: {}\n"
+            "Please run 'aws sso login{}' to authenticate first.".format(e, profile_part),
+            flush=True,
+        )
+        exit(-1)
     except ClientError as e:
         if "InvalidClientTokenId" in str(e):
             print(

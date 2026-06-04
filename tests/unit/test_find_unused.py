@@ -4,7 +4,7 @@ from importlib import reload
 
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
-from nose.tools import assert_equal, assert_true, assert_false
+from .nose_compat import assert_equal, assert_true, assert_false
 
 
 class TestFindUnused(TestCase):

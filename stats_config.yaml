@@ -96,10 +96,6 @@
   query: .connections|length
   source: directconnect-describe-connections
   verbose: true
-- name: CloudSearch domains
-  query: .DomainStatusList|length
-  source: cloudsearch-describe-domains
-  verbose: true
 - name: ECR repositories
   query: .repositories|length
   source: ecr-describe-repositories

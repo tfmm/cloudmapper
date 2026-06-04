@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>Duo CloudMapper</title>
+    <title>CloudMapper</title>
     <script src='./js/nprogress.js'></script>
     <link href='./css/nprogress.css' rel="stylesheet" type="text/css"/>
 
@@ -14,7 +14,7 @@
 
     <link href="./css/cloudmap.css" rel="stylesheet" type="text/css" />
 
-    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico"/>
+
 </head>
 
 <body>
@@ -64,6 +64,23 @@
     </div>
 
     <div id="cy"></div>
+
+    <div id="legend">
+        <h3>Connection Legend</h3>
+        <div class="legend-item" data-edge-class="public"><span class="legend-color public"></span>Public Ingress</div>
+        <div class="legend-item" data-edge-class="vpc"><span class="legend-color vpc"></span>VPC Peering</div>
+        <div class="legend-item" data-edge-class="internal_compute"><span class="legend-color internal_compute"></span>Internal to Compute</div>
+        <div class="legend-item" data-edge-class="internal_db"><span class="legend-color internal_db"></span>Internal to Database</div>
+        <div class="legend-item" data-edge-class="internal_lb"><span class="legend-color internal_lb"></span>Internal to Load Balancer</div>
+        <div class="legend-item" data-edge-class="internal_ep"><span class="legend-color internal_ep"></span>Internal to Endpoint</div>
+        <div class="legend-item" data-edge-class="admin"><span class="legend-color admin"></span>Admin (Web of Trust)</div>
+        <div class="legend-item" data-edge-class="assume_role"><span class="legend-color assume_role"></span>Assume Role</div>
+        <div class="legend-item" data-edge-class="assume_role_read"><span class="legend-color assume_role_read"></span>Assume Role (Read-Only)</div>
+        <div class="legend-item" data-edge-class="s3"><span class="legend-color s3"></span>S3 Access</div>
+        <div class="legend-item" data-edge-class="s3_read"><span class="legend-color s3_read"></span>S3 Access (Read-Only)</div>
+        <div class="legend-item" data-edge-class="cloudtrail"><span class="legend-color cloudtrail"></span>CloudTrail</div>
+        <div class="legend-item" data-edge-class="directconnect"><span class="legend-color directconnect"></span>DirectConnect</div>
+    </div>
 
     <script src='./js/cytoscape.min.js'></script>
     <script src="./js/jquery.min.js"></script>

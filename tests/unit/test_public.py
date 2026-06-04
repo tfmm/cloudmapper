@@ -1,6 +1,6 @@
 import unittest
 import json
-from nose.tools import assert_equal, assert_true, assert_false
+from .nose_compat import assert_equal, assert_true, assert_false
 
 from shared.public import regroup_ranges, port_ranges_string, get_public_nodes
 from shared.common import parse_arguments

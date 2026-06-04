@@ -1,6 +1,6 @@
 import unittest
 import argparse
-from nose.tools import assert_equal, assert_true, assert_false
+from .nose_compat import assert_equal, assert_true, assert_false
 
 from shared.common import (
     make_list,

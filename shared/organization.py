@@ -7,7 +7,7 @@ MAX_NUM_RESULTS = 20
 
 
 def get_organization_accounts():
-    organizations_client = boto3.client("organizations")
+    organizations_client = boto3.Session().client("organizations")
     has_more = True
     next_token = None
     accounts = []
