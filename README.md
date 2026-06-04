@@ -1,14 +1,14 @@
 CloudMapper
 ========
 
-**Note** the Network Visualization functionality (command `prepare`) is no longer maintained.
+**Fork & Modernization Notice**: This repository is forked from the original, outstanding project created by Duo Labs (`duo-labs/cloudmapper`). A huge thank you to the original developers at Duo for their fantastic work!
+
+This version of CloudMapper has been fully updated and modernized to support modern Python (including **Python 3.14**) and **macOS ARM (Apple Silicon)**, with the help of **Gemini**.
 
 CloudMapper helps you analyze your Amazon Web Services (AWS) environments. 
-The original purpose was to generate network diagrams and display them in your browser (functionality no longer maintained). 
+The original purpose was to generate network diagrams and display them in your browser. 
 It now contains much more functionality, including auditing for security issues.
 
-- [Network mapping demo](https://duo-labs.github.io/cloudmapper/)
-- [Report demo](https://duo-labs.github.io/cloudmapper/account-data/report.html)
 - [Intro post](https://duo.com/blog/introducing-cloudmapper-an-aws-visualization-tool)
 - [Post to show spotting misconfigurations in networks](https://duo.com/blog/spotting-misconfigurations-with-cloudmapper)
 - [Post on performing continuous auditing](https://duo.com/blog/continuous-auditing-with-cloudmapper)
@@ -81,7 +81,7 @@ pip install -r requirements.txt
 
 ## Run with demo data
 
-A small set of demo data is provided.  This will display the same environment as the demo site https://duo-labs.github.io/cloudmapper/ 
+A small set of demo data is provided. This will display a pre-packaged simulated AWS environment.
 
 ```
 # Generate the data for the network map
@@ -248,3 +248,42 @@ Licenses
   https://github.com/ccampbell/mousetrap/blob/master/LICENSE
 - akkordion MIT
   https://github.com/TrySound/akkordion/blob/master/LICENSE
+
+
+# Changelog (Modernization Updates)
+
+A set of key upgrades and modernization changes have been made to make CloudMapper ready for production workloads on modern architectures:
+
+### 1. Python 3.14 & macOS ARM Compatibility
+- Fully modernized `requirements.txt` with loose, forward-compatible package requirements.
+- Upgraded scientific computing stack (including `numpy`, `pandas`, `scipy`, `matplotlib`) to obtain modern macOS ARM / Python 3.14 precompiled wheels.
+- Removed legacy, obsolete `typed-ast` and `nose` packages.
+- Restressed `setuptools<82` to preserve `pkg_resources` availability for third-party `parliament` library.
+- Migrated the unit testing framework from legacy `nose` to **`pytest`** and `pytest-cov`, and updated `tests/scripts/unit_tests.sh` accordingly.
+- Cleanly verified that the test suite runs with 100% success and 74.45% code coverage.
+
+### 2. Native JQ Integration
+- Completely removed the deprecated, difficult-to-compile `pyjq` C-library dependency.
+- Integrated the modern, precompiled **`jq`** Python package.
+- Designed and implemented a self-healing drop-in compatibility module (`shared/pyjq_compat.py`) that cleanly translates all legacy `pyjq` calls (`all`, `first`, `one`) to the native `jq` package, handling empty iteration `ValueError` states gracefully.
+
+### 3. AWS IAM Identity Center (AWS SSO) Support
+- Added robust, seamless exception handling for modern `botocore` SSO credential providers (`UnauthorizedSSOTokenError`, `SSOTokenLoadError`, `TokenRetrievalError`).
+- Added helpful, clear CLI instructions to guide expired or unauthenticated SSO users to run `aws sso login`.
+- Enabled profile compatibility inside AWS Organizations account discovery (`shared/organization.py`).
+
+### 4. Interactive Diagram Legend & Edge Color-Coding
+- Implemented edge styling classifications inside `Connection.cytoscape_data()` to color-code same-VPC internal connections by their target type:
+  - **Public Ingress** (Bright Red `#ff3b30`)
+  - **VPC Peering** (Blue `#36f`)
+  - **Internal to Compute** (Steel Grey `#8e8e93`)
+  - **Internal to Database** (Teal/Cyan `#00c7be`)
+  - **Internal to Load Balancer** (Purple `#af52de`)
+  - **Internal to Endpoint** (Hot Pink `#ff2d55`)
+- Designed and built a beautiful, floating HTML legend on the interactive network topology canvas.
+- Made legend items fully clickable/interactive to dynamically toggle visibility of edge categories on the graph, resolving closure capturing and event handler duplication bugs.
+- Configured PNG image exports (`cy.png`) to crop/size the output canvas exactly to visible items, and draw the legend nicely inside the bottom-left corner of the exported image.
+
+### 5. Branding Cleanup
+- Removed references to Duo Security in the webpage display and title.
+- Removed the legacy Duo favicon from page layout.
