@@ -39,6 +39,7 @@ $(window).on('load', function(){
         $.getJSON("./data.json"),
         $.getJSON("./style.json")
     ).done(function(datafile, stylefile) {
+        window.cachedStyle = stylefile[0];
         loadCytoscape({
             wheelSensitivity: 0.1,
             container: document.getElementById('cy'),
@@ -65,6 +66,24 @@ function loadCytoscape(options) {
     // Perform the layout
     var cy = window.cy = cytoscape(options);
     NProgress.set(0.9);
+
+    // Restore hidden state for elements that were exported as hidden
+    cy.elements().forEach(function(ele) {
+        if (ele.data('hidden')) {
+            ele.style('display', 'none');
+        }
+    });
+
+    // Sync legend states with actual visibility of edges
+    document.querySelectorAll('#legend .legend-item').forEach(function(item) {
+        var edgeClass = item.getAttribute('data-edge-class');
+        var edges = cy.edges('.' + edgeClass);
+        if (edges.length > 0 && edges.every(function(e) { return e.style('display') === 'none' || !e.visible(); })) {
+            item.classList.add('legend-inactive');
+        } else {
+            item.classList.remove('legend-inactive');
+        }
+    });
 
     // Snap to grid
     cy.gridGuide({
@@ -194,16 +213,157 @@ function loadCytoscape(options) {
 
     // Save image
     document.getElementById("saveImage").addEventListener("click", function () {
-        var png = cy.png( {
-            output: 'blob',
-            full: true
+        var cyDataUrl = cy.png({
+            output: 'base64',
+            full: true,
+            eles: ':visible'
         });
-        saveAs(png, "CloudMapper.png");
+        
+        var img = new Image();
+        img.src = 'data:image/png;base64,' + cyDataUrl;
+        img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            ctx.drawImage(img, 0, 0);
+            
+            var legendItems = [
+                { text: "Public Ingress", color: "#ff3b30", dashed: false },
+                { text: "VPC Peering", color: "#36f", dashed: false },
+                { text: "Internal to Compute", color: "#8e8e93", dashed: false },
+                { text: "Internal to Database", color: "#00c7be", dashed: false },
+                { text: "Internal to Load Balancer", color: "#af52de", dashed: false },
+                { text: "Internal to Endpoint", color: "#ff2d55", dashed: false },
+                { text: "Admin (Web of Trust)", color: "#f00", dashed: false, thick: true },
+                { text: "Assume Role", color: "#999", dashed: false },
+                { text: "Assume Role (Read-Only)", color: "#999", dashed: true },
+                { text: "S3 Access", color: "#fc0", dashed: false },
+                { text: "S3 Access (Read-Only)", color: "#fc0", dashed: true },
+                { text: "CloudTrail", color: "#090", dashed: false },
+                { text: "DirectConnect", color: "#36f", dashed: true }
+            ];
+            
+            var boxWidth = 230;
+            var boxHeight = 15 + 25 + (legendItems.length * 20) + 10;
+            var startX = 30;
+            var startY = canvas.height - boxHeight - 30;
+            
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            
+            ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(startX, startY, boxWidth, boxHeight, 8);
+            } else {
+                ctx.rect(startX, startY, boxWidth, boxHeight);
+            }
+            ctx.fill();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#ccc";
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(startX, startY, boxWidth, boxHeight, 8);
+            } else {
+                ctx.rect(startX, startY, boxWidth, boxHeight);
+            }
+            ctx.stroke();
+            
+            ctx.font = "bold 13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillStyle = "#333";
+            ctx.fillText("Connection Legend", startX + 15, startY + 25);
+            
+            ctx.strokeStyle = "#ddd";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(startX + 15, startY + 34);
+            ctx.lineTo(startX + boxWidth - 15, startY + 34);
+            ctx.stroke();
+            
+            var itemY = startY + 52;
+            ctx.font = "11px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            
+            legendItems.forEach(function(item) {
+                ctx.strokeStyle = item.color;
+                ctx.lineWidth = item.thick ? 4 : 2;
+                
+                ctx.beginPath();
+                if (item.dashed) {
+                    ctx.setLineDash([4, 4]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                ctx.moveTo(startX + 15, itemY - 4);
+                ctx.lineTo(startX + 40, itemY - 4);
+                ctx.stroke();
+                
+                ctx.fillStyle = "#555";
+                ctx.fillText(item.text, startX + 48, itemY);
+                
+                itemY += 20;
+            });
+            
+            canvas.toBlob(function(blob) {
+                saveAs(blob, "CloudMapper.png");
+            }, "image/png");
+        };
+    });
+
+    // Make legend items clickable to toggle edge visibility
+    $('#legend .legend-item').css('cursor', 'pointer').attr('title', 'Click to toggle visibility').off('click').on('click', function() {
+        var edgeClass = $(this).attr('data-edge-class');
+        var isHidden = $(this).toggleClass('legend-inactive').hasClass('legend-inactive');
+        
+        var edges = window.cy.edges('.' + edgeClass);
+        if (isHidden) {
+            edges.style('display', 'none');
+        } else {
+            edges.style('display', 'element');
+        }
     });
 
     // Export layout
     document.getElementById("exportLayout").addEventListener("click", function () {
-        blob = new Blob([CircularJSON.stringify(cy.json())], {type: "text/plain;charset=utf-8"});
+        var cyJson = cy.json();
+        if (cyJson.elements) {
+            if (Array.isArray(cyJson.elements)) {
+                cyJson.elements.forEach(function(eleJson) {
+                    var ele = cy.getElementById(eleJson.data.id);
+                    if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                        eleJson.data.hidden = true;
+                    }
+                });
+            } else {
+                if (cyJson.elements.nodes) {
+                    cyJson.elements.nodes.forEach(function(nodeJson) {
+                        var ele = cy.getElementById(nodeJson.data.id);
+                        if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                            nodeJson.data.hidden = true;
+                        }
+                    });
+                }
+                if (cyJson.elements.edges) {
+                    cyJson.elements.edges.forEach(function(edgeJson) {
+                        var ele = cy.getElementById(edgeJson.data.id);
+                        if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                            edgeJson.data.hidden = true;
+                        }
+                    });
+                }
+            }
+        }
+        blob = new Blob([CircularJSON.stringify(cyJson)], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "layout.json");
     });
 
@@ -424,6 +584,9 @@ function importLayout() {
         options = JSON.parse(fileString);
         options.container = document.getElementById('cy');
         options.layout = {name: 'preset'};
+        if (window.cachedStyle) {
+            options.style = window.cachedStyle;
+        }
         loadCytoscape(options);
     };
 }

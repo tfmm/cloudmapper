@@ -2,7 +2,7 @@ import argparse
 from os import path, listdir
 import json
 import yaml
-import pyjq
+import shared.pyjq_compat as pyjq
 import urllib.parse
 
 from shared.common import (
