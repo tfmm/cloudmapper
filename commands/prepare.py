@@ -50,6 +50,7 @@ from shared.nodes import (
     ElasticSearch,
     Cidr,
     Connection,
+    ReportResource,
 )
 
 __description__ = "Generate network connection information file"
@@ -408,7 +409,71 @@ def get_resource_nodes(region, outputfilter):
     return nodes
 
 
+def get_item_metadata(item, resource_name):
+    if isinstance(item, (str, int, float)):
+        if resource_name == "SQS queues" and isinstance(item, str) and "/" in item:
+            return item, item.split("/")[-1]
+        return str(item), str(item)
+
+    if isinstance(item, dict):
+        id_fields = [
+            "Arn", "ARN", "Id", "ID", "Name", "KeyId", "QueueUrl", "Url", 
+            "DBInstanceIdentifier", "ClusterIdentifier", "FileSystemId",
+            "GroupId", "DomainName", "HostedZoneId", "HostedZone",
+            "StackId", "StackName", "TriggerName", "JobName", "ApplicationName"
+        ]
+        local_id = None
+        for f in id_fields:
+            if f in item:
+                local_id = str(item[f])
+                break
+        if not local_id:
+            for k, v in item.items():
+                if "id" in k.lower() or "arn" in k.lower() or "name" in k.lower():
+                    local_id = str(v)
+                    break
+        if not local_id:
+            local_id = str(item)
+
+        name_fields = [
+            "Name", "DisplayName", "DBInstanceIdentifier", "ClusterIdentifier",
+            "DomainName", "HostedZoneName", "StackName", "JobName", "TriggerName",
+            "ApplicationName", "QueueName", "FileSystemId", "Id", "KeyId"
+        ]
+        name = None
+        for f in name_fields:
+            if f in item:
+                name = str(item[f])
+                break
+        if not name:
+            name = local_id
+
+        if "/" in name and not name.startswith("arn:"):
+            name = name.split("/")[-1]
+
+        return local_id, name
+
+    return str(item), str(item)
+
+
 def build_data_structure(account_data, config, outputfilter):
+    import yaml
+    try:
+        with open("stats_config.yaml", "r") as f:
+            stats_config = yaml.safe_load(f)
+    except Exception as e:
+        log("WARNING: Unable to load stats_config.yaml: {}".format(e))
+        stats_config = []
+
+    skipped_sources = [
+        "ec2-describe-instances",
+        "elb-describe-load-balancers",
+        "elbv2-describe-load-balancers",
+        "rds-describe-db-instances",
+        "redshift-describe-clusters",
+        "es-list-domain-names"
+    ]
+
     cytoscape_json = []
 
     if outputfilter.get("mute", False):
@@ -420,67 +485,165 @@ def build_data_structure(account_data, config, outputfilter):
 
     cytoscape_json.append(account.cytoscape_data())
 
+    regions_list = list(get_regions(account, outputfilter))
+    regions_list.append({"RegionName": "global"})
+
     # Iterate through each region and add all the VPCs, AZs, and Subnets
-    for region_json in get_regions(account, outputfilter):
+    for region_json in regions_list:
         region = Region(account, region_json)
 
-        # Build the tree hierarchy
-        for vpc_json in get_vpcs(region, outputfilter):
-            vpc = Vpc(region, vpc_json)
+        if region.name == "global":
+            # For global services, create a virtual VPC and Subnet
+            mock_vpc = Vpc(region, {"VpcId": "vpc-global", "CidrBlock": "Global", "Tags": []})
+            mock_subnet = Subnet(mock_vpc, {"SubnetId": "subnet-global", "CidrBlock": "Global", "Tags": []})
+            mock_vpc.addChild(mock_subnet)
+            region.addChild(mock_vpc)
+            account.addChild(region)
 
-            for az_json in get_azs(vpc):
-                # Availibility zones are not a per VPC construct, but VPC's can span AZ's,
-                # so I make VPC a higher level construct
-                az = Az(vpc, az_json)
+            global_nodes = {}
+            for resource in stats_config:
+                if resource["source"] in skipped_sources:
+                    continue
+                is_global_resource = resource["source"] in [
+                    "s3-list-buckets",
+                    "route53-list-hosted-zones",
+                    "route53domains-list-domains",
+                    "cloudfront-list-distributions"
+                ]
+                if not is_global_resource:
+                    continue
 
-                for subnet_json in get_subnets(az):
-                    # If we ignore AZz, then tie the subnets up the VPC as the parent
-                    if outputfilter.get("azs", False):
-                        parent = az
-                    else:
-                        parent = vpc
+                resource_data = query_aws(account, resource["source"])
+                if not resource_data:
+                    continue
 
-                    subnet = Subnet(parent, subnet_json)
-                    az.addChild(subnet)
-                vpc.addChild(az)
-            region.addChild(vpc)
-        account.addChild(region)
+                q = resource["query"]
+                if q.endswith("|length"):
+                    q = q[:-7] + "[]?"
 
-        # In each region, iterate through all the resource types
-        nodes = get_resource_nodes(region, outputfilter)
+                items = pyjq.all(q, resource_data)
+                for item in items:
+                    local_id, name = get_item_metadata(item, resource["name"])
+                    slug = resource["name"].lower().replace(" ", "_")
+                    node = ReportResource(mock_subnet, local_id, name, slug, item)
+                    global_nodes[node.arn] = node
+                    mock_subnet.addChild(node)
 
-        # Filter out nodes based on tags
-        if len(outputfilter.get("tags", [])) > 0:
-            for node_id in list(nodes):
-                has_match = False
-                node = nodes[node_id]
-                # For each node, look to see if its tags match one of the tag sets
-                # Ex. --tags Env=Prod --tags Team=Dev,Name=Bastion
-                for tag_set in outputfilter.get("tags", []):
-                    conditions = [c.split("=") for c in tag_set.split(",")]
-                    condition_matches = 0
-                    # For a tag set, see if all conditions match, ex. [["Team","Dev"],["Name","Bastion"]]
-                    for pair in conditions:
-                        # Given ["Team","Dev"], see if it matches one of the tags in the node
-                        if node.tags:
-                            for tag in node.tags:
-                                if (
-                                    tag.get("Key", "") == pair[0]
-                                    and tag.get("Value", "") == pair[1]
-                                ):
-                                    condition_matches += 1
-                    # We have a match if all of the conditions matched
-                    if condition_matches == len(conditions):
-                        has_match = True
+        else:
+            # Build the tree hierarchy
+            for vpc_json in get_vpcs(region, outputfilter):
+                vpc = Vpc(region, vpc_json)
 
-                # If there were no matches, remove the node
-                if not has_match:
-                    del nodes[node_id]
+                for az_json in get_azs(vpc):
+                    # Availibility zones are not a per VPC construct, but VPC's can span AZ's,
+                    # so I make VPC a higher level construct
+                    az = Az(vpc, az_json)
 
-        # Add the nodes to their respective subnets
-        for node_arn in list(nodes):
-            node = nodes[node_arn]
-            add_node_to_subnets(region, node, nodes)
+                    for subnet_json in get_subnets(az):
+                        # If we ignore AZz, then tie the subnets up the VPC as the parent
+                        if outputfilter.get("azs", False):
+                            parent = az
+                        else:
+                            parent = vpc
+
+                        subnet = Subnet(parent, subnet_json)
+                        az.addChild(subnet)
+                    vpc.addChild(az)
+                region.addChild(vpc)
+            account.addChild(region)
+
+            # In each region, iterate through all the resource types
+            nodes = get_resource_nodes(region, outputfilter)
+
+            # Create regional mock VPC and Subnet for non-VPC resources
+            mock_vpc = Vpc(region, {"VpcId": "vpc-non-vpc", "CidrBlock": "Non-VPC", "Tags": []})
+            mock_subnet = Subnet(mock_vpc, {"SubnetId": "subnet-non-vpc", "CidrBlock": "Non-VPC", "Tags": []})
+            mock_vpc.addChild(mock_subnet)
+            region.addChild(mock_vpc)
+
+            # Load regional non-VPC resources from stats_config
+            for resource in stats_config:
+                if resource["source"] in skipped_sources:
+                    continue
+                if resource["name"] == "S3 buckets":
+                    s3_data = query_aws(account, "s3-list-buckets")
+                    if not s3_data:
+                        continue
+                    buckets = pyjq.all(".Buckets[]?", s3_data)
+                    for bucket_item in buckets:
+                        bucket = bucket_item["Name"]
+                        loc_constraint = get_parameter_file(region, "s3", "get-bucket-location", bucket)
+                        bucket_region = "us-east-1"
+                        if loc_constraint and "LocationConstraint" in loc_constraint:
+                            bucket_region = loc_constraint["LocationConstraint"]
+                        if bucket_region is None:
+                            bucket_region = "us-east-1"
+                        elif bucket_region == "EU":
+                            bucket_region = "eu-west-1"
+
+                        if bucket_region == region.name:
+                            node = ReportResource(mock_subnet, bucket, bucket, "s3_bucket", bucket_item)
+                            mock_subnet.addChild(node)
+                    continue
+
+                is_global_resource = resource["source"] in [
+                    "route53-list-hosted-zones",
+                    "route53domains-list-domains",
+                    "cloudfront-list-distributions"
+                ]
+                if is_global_resource:
+                    continue
+
+                if ("region" in resource) and (resource["region"] != region.name):
+                    continue
+
+                resource_data = query_aws(account, resource["source"], region)
+                if not resource_data:
+                    continue
+
+                q = resource["query"]
+                if q.endswith("|length"):
+                    q = q[:-7] + "[]?"
+
+                items = pyjq.all(q, resource_data)
+                for item in items:
+                    local_id, name = get_item_metadata(item, resource["name"])
+                    slug = resource["name"].lower().replace(" ", "_")
+                    node = ReportResource(mock_subnet, local_id, name, slug, item)
+                    mock_subnet.addChild(node)
+
+            # Filter out nodes based on tags
+            if len(outputfilter.get("tags", [])) > 0:
+                for node_id in list(nodes):
+                    has_match = False
+                    node = nodes[node_id]
+                    # For each node, look to see if its tags match one of the tag sets
+                    # Ex. --tags Env=Prod --tags Team=Dev,Name=Bastion
+                    for tag_set in outputfilter.get("tags", []):
+                        conditions = [c.split("=") for c in tag_set.split(",")]
+                        condition_matches = 0
+                        # For a tag set, see if all conditions match, ex. [["Team","Dev"],["Name","Bastion"]]
+                        for pair in conditions:
+                            # Given ["Team","Dev"], see if it matches one of the tags in the node
+                            if node.tags:
+                                for tag in node.tags:
+                                    if (
+                                        tag.get("Key", "") == pair[0]
+                                        and tag.get("Value", "") == pair[1]
+                                    ):
+                                        condition_matches += 1
+                        # We have a match if all of the conditions matched
+                        if condition_matches == len(conditions):
+                            has_match = True
+
+                    # If there were no matches, remove the node
+                    if not has_match:
+                        del nodes[node_id]
+
+            # Add the nodes to their respective subnets
+            for node_arn in list(nodes):
+                node = nodes[node_arn]
+                add_node_to_subnets(region, node, nodes)
 
         # From the root of the tree (the account), add in the children if there are leaves
         # If not, mark the item for removal

@@ -920,3 +920,23 @@ class Connection(object):
                 "node_data": self._json,
             }
         }
+
+
+class ReportResource(Leaf):
+    @property
+    def subnets(self):
+        return []
+
+    def __init__(self, parent, local_id, name, resource_type, json_blob):
+        self._type = resource_type
+        self._local_id = local_id
+        parent_region_name = parent.region.name if parent and hasattr(parent, "region") and parent.region else "global"
+        parent_account_id = parent.account.local_id if parent and hasattr(parent, "account") and parent.account else "global"
+        self._arn = "arn:aws::{}:{}:{}/{}".format(
+            parent_region_name,
+            parent_account_id,
+            resource_type,
+            local_id
+        )
+        self._name = name
+        super(ReportResource, self).__init__(parent, json_blob)
