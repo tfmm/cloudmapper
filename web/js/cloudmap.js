@@ -319,20 +319,16 @@ function loadCytoscape(options) {
     });
 
     // Make legend items clickable to toggle edge visibility
-    document.querySelectorAll('#legend .legend-item').forEach(function(item) {
-        item.style.cursor = 'pointer';
-        item.title = 'Click to toggle visibility';
-        item.addEventListener('click', function() {
-            var edgeClass = this.getAttribute('data-edge-class');
-            var isHidden = this.classList.toggle('legend-inactive');
-            
-            var edges = cy.edges('.' + edgeClass);
-            if (isHidden) {
-                edges.style('display', 'none');
-            } else {
-                edges.style('display', 'element');
-            }
-        });
+    $('#legend .legend-item').css('cursor', 'pointer').attr('title', 'Click to toggle visibility').off('click').on('click', function() {
+        var edgeClass = $(this).attr('data-edge-class');
+        var isHidden = $(this).toggleClass('legend-inactive').hasClass('legend-inactive');
+        
+        var edges = window.cy.edges('.' + edgeClass);
+        if (isHidden) {
+            edges.style('display', 'none');
+        } else {
+            edges.style('display', 'element');
+        }
     });
 
     // Export layout
