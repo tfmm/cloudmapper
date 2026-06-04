@@ -125,6 +125,21 @@ Collecting the data is done as follows:
 python cloudmapper.py collect --account my_account
 ```
 
+#### IAM Identity Center (AWS SSO) Support
+If you authenticate using AWS IAM Identity Center (formerly AWS SSO), configure your profile in `~/.aws/config` (typically via `aws configure sso`).
+
+Prior to running collection, ensure you are logged into your SSO session:
+```bash
+aws sso login --profile my-sso-profile
+```
+
+Then, run `collect` by specifying your SSO profile via the `--profile` argument:
+```bash
+python cloudmapper.py collect --account my_account --profile my-sso-profile
+```
+
+If your SSO session expires or is unauthenticated, CloudMapper will cleanly catch the authentication error and prompt you to run `aws sso login`.
+
 ## Analyze the data
 From here, try running the different commands, such as:
 
