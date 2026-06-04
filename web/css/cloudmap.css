@@ -271,8 +271,17 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 .legend-color.vpc {
     background-color: #36f;
 }
-.legend-color.internal {
-    background-color: #888;
+.legend-color.internal_compute {
+    background-color: #8e8e93;
+}
+.legend-color.internal_db {
+    background-color: #00c7be;
+}
+.legend-color.internal_lb {
+    background-color: #af52de;
+}
+.legend-color.internal_ep {
+    background-color: #ff2d55;
 }
 .legend-color.admin {
     background-color: #f00;

@@ -32,6 +32,42 @@
             "target-arrow-color": "#ff3b30"
         }
     },
+    {
+        "selector": "edge.internal_db",
+        "style": {
+            "width": 5,
+            "label": "to database",
+            "line-color": "#00c7be",
+            "target-arrow-color": "#00c7be"
+        }
+    },
+    {
+        "selector": "edge.internal_lb",
+        "style": {
+            "width": 5,
+            "label": "to load balancer",
+            "line-color": "#af52de",
+            "target-arrow-color": "#af52de"
+        }
+    },
+    {
+        "selector": "edge.internal_ep",
+        "style": {
+            "width": 5,
+            "label": "to endpoint",
+            "line-color": "#ff2d55",
+            "target-arrow-color": "#ff2d55"
+        }
+    },
+    {
+        "selector": "edge.internal_compute",
+        "style": {
+            "width": 5,
+            "label": "to compute",
+            "line-color": "#8e8e93",
+            "target-arrow-color": "#8e8e93"
+        }
+    },
 
     {
         "selector": "edge.admin",

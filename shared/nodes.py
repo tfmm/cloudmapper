@@ -921,6 +921,17 @@ class Connection(object):
                 target_vpc = self._target.vpc if hasattr(self._target, "vpc") and self._target.parent else None
                 if source_vpc and target_vpc and source_vpc.local_id != target_vpc.local_id:
                     classes.append("vpc")
+                else:
+                    # Internal VPC connection - differentiate by target type
+                    target_type = self._target.node_type
+                    if target_type in ["rds", "rds_rr", "redshift", "elasticsearch"]:
+                        classes.append("internal_db")
+                    elif target_type in ["elb", "elbv2"]:
+                        classes.append("internal_lb")
+                    elif target_type in ["vpc_endpoint"]:
+                        classes.append("internal_ep")
+                    else:
+                        classes.append("internal_compute")
         except Exception:
             pass
 
