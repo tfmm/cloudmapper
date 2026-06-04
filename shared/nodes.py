@@ -912,7 +912,19 @@ class Connection(object):
         self._json = []
 
     def cytoscape_data(self):
-        return {
+        classes = []
+        try:
+            if self._source.arn == "0.0.0.0/0" or self._target.arn == "0.0.0.0/0":
+                classes.append("public")
+            else:
+                source_vpc = self._source.vpc if hasattr(self._source, "vpc") and self._source.parent else None
+                target_vpc = self._target.vpc if hasattr(self._target, "vpc") and self._target.parent else None
+                if source_vpc and target_vpc and source_vpc.local_id != target_vpc.local_id:
+                    classes.append("vpc")
+        except Exception:
+            pass
+
+        res = {
             "data": {
                 "source": self._source.arn,
                 "target": self._target.arn,
@@ -920,3 +932,6 @@ class Connection(object):
                 "node_data": self._json,
             }
         }
+        if classes:
+            res["classes"] = " ".join(classes)
+        return res

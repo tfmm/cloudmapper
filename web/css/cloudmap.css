@@ -222,4 +222,85 @@ html, body {margin: 0; height: 100%; overflow: hidden}
     visibility: visible;
 }
 
+#legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 9999;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    max-width: 200px;
+}
+
+#legend h3 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 25px;
+    height: 4px;
+    margin-right: 8px;
+    border-radius: 2px;
+}
+
+/* Colors matching our style.json definitions */
+.legend-color.public {
+    background-color: #ff3b30;
+}
+.legend-color.vpc {
+    background-color: #36f;
+}
+.legend-color.internal {
+    background-color: #888;
+}
+.legend-color.admin {
+    background-color: #f00;
+    height: 6px;
+}
+.legend-color.assume_role {
+    background-color: #999;
+}
+.legend-color.assume_role_read {
+    border-top: 2px dashed #999;
+    background: none;
+    height: 0;
+}
+.legend-color.s3 {
+    background-color: #fc0;
+}
+.legend-color.s3_read {
+    border-top: 2px dashed #fc0;
+    background: none;
+    height: 0;
+}
+.legend-color.cloudtrail {
+    background-color: #090;
+}
+.legend-color.directconnect {
+    border-top: 2px dashed #36f;
+    background: none;
+    height: 0;
+}
+
 

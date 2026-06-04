@@ -24,6 +24,16 @@
 
 
     {
+        "selector": "edge.public",
+        "style": {
+            "width": 7,
+            "label": "public ingress",
+            "line-color": "#ff3b30",
+            "target-arrow-color": "#ff3b30"
+        }
+    },
+
+    {
         "selector": "edge.admin",
         "style": {
             "width": 10,
