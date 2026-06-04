@@ -39,6 +39,7 @@ $(window).on('load', function(){
         $.getJSON("./data.json"),
         $.getJSON("./style.json")
     ).done(function(datafile, stylefile) {
+        window.cachedStyle = stylefile[0];
         loadCytoscape({
             wheelSensitivity: 0.1,
             container: document.getElementById('cy'),
@@ -582,6 +583,9 @@ function importLayout() {
         options = JSON.parse(fileString);
         options.container = document.getElementById('cy');
         options.layout = {name: 'preset'};
+        if (window.cachedStyle) {
+            options.style = window.cachedStyle;
+        }
         loadCytoscape(options);
     };
 }
