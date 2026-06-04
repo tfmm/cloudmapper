@@ -66,6 +66,24 @@ function loadCytoscape(options) {
     var cy = window.cy = cytoscape(options);
     NProgress.set(0.9);
 
+    // Restore hidden state for elements that were exported as hidden
+    cy.elements().forEach(function(ele) {
+        if (ele.data('hidden')) {
+            ele.style('display', 'none');
+        }
+    });
+
+    // Sync legend states with actual visibility of edges
+    document.querySelectorAll('#legend .legend-item').forEach(function(item) {
+        var edgeClass = item.getAttribute('data-edge-class');
+        var edges = cy.edges('.' + edgeClass);
+        if (edges.length > 0 && edges.every(function(e) { return e.style('display') === 'none' || !e.visible(); })) {
+            item.classList.add('legend-inactive');
+        } else {
+            item.classList.remove('legend-inactive');
+        }
+    });
+
     // Snap to grid
     cy.gridGuide({
         drawGrid: false,
@@ -319,7 +337,35 @@ function loadCytoscape(options) {
 
     // Export layout
     document.getElementById("exportLayout").addEventListener("click", function () {
-        blob = new Blob([CircularJSON.stringify(cy.json())], {type: "text/plain;charset=utf-8"});
+        var cyJson = cy.json();
+        if (cyJson.elements) {
+            if (Array.isArray(cyJson.elements)) {
+                cyJson.elements.forEach(function(eleJson) {
+                    var ele = cy.getElementById(eleJson.data.id);
+                    if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                        eleJson.data.hidden = true;
+                    }
+                });
+            } else {
+                if (cyJson.elements.nodes) {
+                    cyJson.elements.nodes.forEach(function(nodeJson) {
+                        var ele = cy.getElementById(nodeJson.data.id);
+                        if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                            nodeJson.data.hidden = true;
+                        }
+                    });
+                }
+                if (cyJson.elements.edges) {
+                    cyJson.elements.edges.forEach(function(edgeJson) {
+                        var ele = cy.getElementById(edgeJson.data.id);
+                        if (ele && (!ele.visible() || ele.style('display') === 'none')) {
+                            edgeJson.data.hidden = true;
+                        }
+                    });
+                }
+            }
+        }
+        blob = new Blob([CircularJSON.stringify(cyJson)], {type: "text/plain;charset=utf-8"});
         saveAs(blob, "layout.json");
     });
 
