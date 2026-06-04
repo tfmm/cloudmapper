@@ -215,7 +215,8 @@ function loadCytoscape(options) {
     document.getElementById("saveImage").addEventListener("click", function () {
         var cyDataUrl = cy.png({
             output: 'base64',
-            full: true
+            full: true,
+            eles: ':visible'
         });
         
         var img = new Image();
