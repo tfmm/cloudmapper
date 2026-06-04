@@ -312,4 +312,19 @@ html, body {margin: 0; height: 100%; overflow: hidden}
     height: 0;
 }
 
+.legend-item {
+    cursor: pointer;
+    transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+.legend-item:hover {
+    opacity: 0.8;
+}
+
+.legend-item.legend-inactive {
+    opacity: 0.35;
+    text-decoration: line-through;
+    color: #999;
+}
+
 

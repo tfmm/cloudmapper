@@ -300,6 +300,23 @@ function loadCytoscape(options) {
         };
     });
 
+    // Make legend items clickable to toggle edge visibility
+    document.querySelectorAll('#legend .legend-item').forEach(function(item) {
+        item.style.cursor = 'pointer';
+        item.title = 'Click to toggle visibility';
+        item.addEventListener('click', function() {
+            var edgeClass = this.getAttribute('data-edge-class');
+            var isHidden = this.classList.toggle('legend-inactive');
+            
+            var edges = cy.edges('.' + edgeClass);
+            if (isHidden) {
+                edges.style('display', 'none');
+            } else {
+                edges.style('display', 'element');
+            }
+        });
+    });
+
     // Export layout
     document.getElementById("exportLayout").addEventListener("click", function () {
         blob = new Blob([CircularJSON.stringify(cy.json())], {type: "text/plain;charset=utf-8"});
