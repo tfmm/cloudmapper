@@ -49,19 +49,20 @@ If you want to add your own private commands, you can create a `private_commands
 ## Installation
 
 Requirements:
-- python 3 (3.7.0rc1 is known to work), `pip`, and `virtualenv`
-- You will also need `jq` (https://stedolan.github.io/jq/) and the library `pyjq` (https://github.com/doloopwhile/pyjq), which require some additional tools installed that will be shown.
+- Python 3 (modern Python up to 3.14 is supported), `pip`, and `virtualenv`
+- Fully compatible with Apple Silicon (**macOS ARM**) and Intel architectures.
+- Utilizes the modern native **`jq`** Python package; legacy, difficult-to-compile `pyjq` is no longer used.
 
 On macOS:
 
 ```
 # clone the repo
 git clone https://github.com/duo-labs/cloudmapper.git
-# Install pre-reqs for pyjq
-brew install autoconf automake awscli freetype jq libtool python3
+# Install pre-reqs (jq binary and awscli)
+brew install awscli jq python3
 cd cloudmapper/
-python3 -m venv ./venv && source venv/bin/activate
-pip install --prefer-binary -r requirements.txt
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 On Linux:
@@ -69,12 +70,11 @@ On Linux:
 # clone the repo
 git clone https://github.com/duo-labs/cloudmapper.git
 # (AWS Linux, Centos, Fedora, RedHat etc.):
-# sudo yum install autoconf automake libtool python3-devel.x86_64 python3-tkinter python-pip jq awscli
+# sudo yum install python3-devel.x86_64 python3-tkinter python-pip jq awscli
 # (Debian, Ubuntu etc.):
-# You may additionally need "build-essential"
-sudo apt-get install autoconf automake libtool python3.7-dev python3-tk jq awscli
+sudo apt-get install python3-tk jq awscli
 cd cloudmapper/
-python3 -m venv ./venv && source venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
