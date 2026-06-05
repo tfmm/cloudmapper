@@ -39,6 +39,35 @@
         <label for="fileUpload"><b id="importLayout" style="display: inline-block;" class="fa fa-upload fa-lg tooltip"><span class="tooltiptext">Import</span></b></label>
         <input type="file" id="fileUpload" style="display: none;" onchange="importLayout()">
 
+        <div id="filterPanel" style="position: absolute; top: 280px; left: 20px; width: 220px; z-index: 9999; padding: 12px; border: 1px solid #ccc; background-color: rgba(255, 255, 255, 0.95); border-radius: 8px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: sans-serif;">
+            <h4 style="margin: 0 0 10px 0; font-family: sans-serif; font-size: 14px; color: #333;">Live Filters</h4>
+            
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 3px; font-family: sans-serif;">Region (Ctrl/Cmd+Click):</label>
+                <select id="filterRegion" multiple style="width: 100%; padding: 4px; font-size: 12px; border-radius: 3px; border: 1px solid #ccc; height: 60px;">
+                    <option value="">All Regions</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 3px; font-family: sans-serif;">VPC (Ctrl/Cmd+Click):</label>
+                <select id="filterVpc" multiple style="width: 100%; padding: 4px; font-size: 12px; border-radius: 3px; border: 1px solid #ccc; height: 60px;">
+                    <option value="">All VPCs</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 3px; font-family: sans-serif;">Resource Type (Ctrl/Cmd+Click):</label>
+                <select id="filterType" multiple style="width: 100%; padding: 4px; font-size: 12px; border-radius: 3px; border: 1px solid #ccc; height: 80px;">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            
+            <div style="text-align: right; margin-top: 10px;">
+                <button id="resetFilters" style="padding: 4px 8px; font-size: 11px; border-radius: 3px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; font-family: sans-serif;">Reset</button>
+            </div>
+        </div>
+
         <div id="nodeInfo">
                 <div id="nodeLocation">&nbsp;</div>
                 <div class="akkordion" data-akkordion-single="true" data-akkordion-speed="200" id="nodeDescriptionHolder">

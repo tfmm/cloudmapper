@@ -825,6 +825,10 @@ class Redshift(Leaf):
 
 
 class ElasticSearch(Leaf):
+    def set_subnet(self, subnet):
+        self._subnet = subnet
+        self._arn = self._arn + "." + subnet.local_id
+
     @property
     def ips(self):
         return []
@@ -952,6 +956,31 @@ class ReportResource(Leaf):
     @property
     def subnets(self):
         return []
+
+    @property
+    def security_groups(self):
+        sgs = []
+        if isinstance(self.json, dict):
+            for sg_obj in self.json.get("SecurityGroups", []):
+                if "SecurityGroupId" in sg_obj:
+                    sgs.append(sg_obj["SecurityGroupId"])
+        return sgs
+
+    @property
+    def ips(self):
+        return []
+
+    @property
+    def is_public(self):
+        return False
+
+    @property
+    def can_egress(self):
+        return False
+
+    @property
+    def has_unrestricted_ingress(self):
+        return False
 
     def __init__(self, parent, local_id, name, resource_type, json_blob):
         self._type = resource_type

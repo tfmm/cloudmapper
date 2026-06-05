@@ -556,6 +556,138 @@ function loadCytoscape(options) {
         hideSelectedNodes();
     });
 
+    // Filter functions
+    function populateFilterDropdowns() {
+        var regions = {};
+        var vpcs = {};
+        var types = {};
+
+        var containerTypes = ["account", "region", "vpc", "az", "subnet", "hidden"];
+
+        cy.nodes().forEach(function(n) {
+            var type = n.data().type;
+            var name = n.data().name || n.data().id;
+
+            if (type === 'region') {
+                regions[n.data().id] = name;
+            } else if (type === 'vpc') {
+                vpcs[n.data().id] = name;
+            } else if (type && containerTypes.indexOf(type) === -1) {
+                var friendlyType = type.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase() });
+                types[type] = friendlyType;
+            }
+        });
+
+        var regionSelect = $('#filterRegion');
+        regionSelect.find('option:not(:first)').remove();
+        Object.keys(regions).sort().forEach(function(id) {
+            regionSelect.append($('<option>', { value: id, text: regions[id] }));
+        });
+        regionSelect.append($('<option>', { value: 'external', text: 'External (Non-AWS)' }));
+
+        var vpcSelect = $('#filterVpc');
+        vpcSelect.find('option:not(:first)').remove();
+        Object.keys(vpcs).sort().forEach(function(id) {
+            var dispName = vpcs[id];
+            if (dispName.indexOf(' (') !== -1) {
+                dispName = dispName.split(' (')[0];
+            }
+            vpcSelect.append($('<option>', { value: id, text: dispName }));
+        });
+
+        var typeSelect = $('#filterType');
+        typeSelect.find('option:not(:first)').remove();
+        Object.keys(types).sort().forEach(function(type) {
+            typeSelect.append($('<option>', { value: type, text: types[type] }));
+        });
+    }
+
+    function applyFilters() {
+        var selectedRegions = $('#filterRegion').val() || [];
+        var selectedVpcs = $('#filterVpc').val() || [];
+        var selectedTypes = $('#filterType').val() || [];
+
+        // If 'All' option (value "") is selected, clear selections so it acts as 'select all'
+        if (selectedRegions.indexOf('') !== -1) selectedRegions = [];
+        if (selectedVpcs.indexOf('') !== -1) selectedVpcs = [];
+        if (selectedTypes.indexOf('') !== -1) selectedTypes = [];
+
+        cy.elements().show();
+
+        var containerTypes = ["account", "region", "vpc", "az", "subnet"];
+        cy.nodes().forEach(function(n) {
+            var type = n.data().type;
+            if (containerTypes.indexOf(type) !== -1) {
+                return;
+            }
+
+            var regNode = n.ancestors().filter('[type = "region"]');
+            var regId = regNode.length > 0 ? regNode.data().id : null;
+            if (regId === null && type === 'ip') {
+                regId = 'external';
+            }
+
+            var vpcNode = n.ancestors().filter('[type = "vpc"]');
+            var vpcId = vpcNode.length > 0 ? vpcNode.data().id : null;
+
+            var matchesRegion = selectedRegions.length === 0 || selectedRegions.indexOf(regId) !== -1;
+            var matchesVpc = selectedVpcs.length === 0 || selectedVpcs.indexOf(vpcId) !== -1;
+            var matchesType = selectedTypes.length === 0 || selectedTypes.indexOf(type) !== -1;
+
+            if (!matchesRegion || !matchesVpc || !matchesType) {
+                n.hide();
+            }
+        });
+
+        // Hide empty container nodes
+        cy.nodes('[type = "subnet"]').forEach(function(n) {
+            var visibleChildren = n.children().filter(':visible');
+            if (visibleChildren.length === 0) {
+                n.hide();
+            }
+        });
+
+        cy.nodes('[type = "az"]').forEach(function(n) {
+            var visibleChildren = n.children().filter(':visible');
+            if (visibleChildren.length === 0) {
+                n.hide();
+            }
+        });
+
+        cy.nodes('[type = "vpc"]').forEach(function(n) {
+            var visibleChildren = n.children().filter(':visible');
+            if (visibleChildren.length === 0) {
+                n.hide();
+            }
+        });
+
+        cy.nodes('[type = "region"]').forEach(function(n) {
+            var visibleChildren = n.children().filter(':visible');
+            if (visibleChildren.length === 0) {
+                n.hide();
+            }
+        });
+
+        cy.edges().forEach(function(e) {
+            if (!e.source().visible() || !e.target().visible()) {
+                e.hide();
+            }
+        });
+    }
+
+    populateFilterDropdowns();
+
+    $('#filterRegion, #filterVpc, #filterType').on('change', function() {
+        applyFilters();
+    });
+
+    $('#resetFilters').on('click', function() {
+        $('#filterRegion').val('');
+        $('#filterVpc').val('');
+        $('#filterType').val('');
+        applyFilters();
+    });
+
     // App has finished loading
     NProgress.done();
 }

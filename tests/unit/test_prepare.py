@@ -181,7 +181,7 @@ class TestPrepare(unittest.TestCase):
 
         # Check number of connections
         assert_equal(
-            2, len(pyjq.all('.[].data|select(.type == "az")|keys', cytoscape_json))
+            4, len(pyjq.all('.[].data|select(.type == "az")|keys', cytoscape_json))
         )
 
         # Test with specific VPC name

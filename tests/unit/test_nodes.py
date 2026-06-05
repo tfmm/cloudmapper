@@ -66,3 +66,29 @@ class TestNodes(unittest.TestCase):
             },
             account.cytoscape_data(),
         )
+
+    def test_ElasticSearch(self):
+        from shared.nodes import ElasticSearch
+        from mock import Mock
+
+        parent = Mock()
+        json_blob = {
+            "ARN": "arn:aws:es:us-east-2:123456789012:domain/my-domain",
+            "DomainName": "my-domain",
+            "VPCOptions": {
+                "SubnetIds": ["subnet-1", "subnet-2"],
+                "SecurityGroupIds": ["sg-1"]
+            }
+        }
+        es = ElasticSearch(parent, json_blob)
+        assert_equal("elasticsearch", es.node_type)
+        assert_equal(["subnet-1", "subnet-2"], es.subnets)
+        assert_equal(["sg-1"], es.security_groups)
+        assert_equal("arn:aws:es:us-east-2:123456789012:domain/my-domain", es.arn)
+
+        # Test set_subnet
+        subnet = Mock()
+        subnet.local_id = "subnet-1"
+        es.set_subnet(subnet)
+        assert_equal("arn:aws:es:us-east-2:123456789012:domain/my-domain.subnet-1", es.arn)
+

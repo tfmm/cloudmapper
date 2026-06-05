@@ -219,9 +219,12 @@ def get_connections(cidrs, vpc, outputfilter):
     """
     connections = {}
 
+    def filter_leaves(leaves):
+        return [leaf for leaf in leaves if not isinstance(leaf, ReportResource) or len(leaf.security_groups) > 0]
+
     # Get mapping of security group names to nodes that have that security group
     sg_to_instance_mapping = {}
-    for instance in vpc.leaves:
+    for instance in filter_leaves(vpc.leaves):
         for sg in instance.security_groups:
             sg_to_instance_mapping.setdefault(sg, {})[instance] = True
 
@@ -250,7 +253,7 @@ def get_connections(cidrs, vpc, outputfilter):
                         continue
 
                     # For each instance, check if one of its IPs is within the CIDR
-                    for sourceInstance in sourceVpc.leaves:
+                    for sourceInstance in filter_leaves(sourceVpc.leaves):
                         for ip in sourceInstance.ips:
                             if IPAddress(ip) in IPNetwork(cidr):
                                 # Instance found that can connect to instances in the SG
@@ -274,7 +277,7 @@ def get_connections(cidrs, vpc, outputfilter):
                         if cidr == "0.0.0.0/0":
                             # Resource is not public, but allows anything to access it,
                             # so mark set all the resources in the VPC as allowing access to it.
-                            for source_instance in vpc.leaves:
+                            for source_instance in filter_leaves(vpc.leaves):
                                 add_connection(
                                     connections, source_instance, instance, sg
                                 )
@@ -303,10 +306,10 @@ def get_connections(cidrs, vpc, outputfilter):
                         add_connection(connections, source, target, sg)
 
     # Connect everything to the Gateway endpoints
-    for targetResource in vpc.leaves:
+    for targetResource in filter_leaves(vpc.leaves):
         if targetResource.has_unrestricted_ingress:
             for sourceVpc in itertools.chain(vpc.peers, (vpc,)):
-                for sourceResource in sourceVpc.leaves:
+                for sourceResource in filter_leaves(sourceVpc.leaves):
                     add_connection(connections, sourceResource, targetResource, [])
 
     # Remove connections for source nodes that cannot initiate traffic (ex. VPC endpoints)
@@ -409,11 +412,71 @@ def get_resource_nodes(region, outputfilter):
     return nodes
 
 
+def extract_name_from_arn(arn):
+    if not arn.startswith("arn:"):
+        return arn
+
+    parts = arn.split(":")
+    if len(parts) < 6:
+        return arn
+
+    resource_part = ":".join(parts[5:])
+    service = parts[2]
+
+    if service == "logs":
+        if resource_part.startswith("log-group:"):
+            return resource_part[10:]
+    elif service == "sns":
+        return resource_part
+    elif service == "sqs":
+        return resource_part
+    elif service == "kms":
+        if "/" in resource_part:
+            return resource_part.split("/", 1)[1]
+    elif service == "cloudformation":
+        if "/" in resource_part:
+            sub_parts = resource_part.split("/")
+            if len(sub_parts) >= 2:
+                return sub_parts[1]
+    elif service == "elasticache":
+        if "/" in resource_part:
+            return resource_part.split("/")[-1]
+        if ":" in resource_part:
+            return resource_part.split(":")[-1]
+    elif service == "autoscaling":
+        if "/" in resource_part:
+            return resource_part.split("/")[-1]
+    elif service == "events":
+        if "/" in resource_part:
+            return resource_part.split("/", 1)[1]
+    elif service == "ecr":
+        if "/" in resource_part:
+            return resource_part.split("/", 1)[1]
+    elif service == "cloudwatch":
+        if resource_part.startswith("alarm:"):
+            return resource_part[6:]
+
+    # Fallback generic parsing
+    if "/" in resource_part:
+        sub_parts = resource_part.split("/")
+        if sub_parts[0] in ["role", "policy", "group", "user", "instance", "key", "snapshot", "subnet", "vpc", "repository", "stack"]:
+            return "/".join(sub_parts[1:])
+        return sub_parts[-1]
+
+    if "/" in arn:
+        return arn.split("/")[-1]
+
+    return resource_part
+
+
 def get_item_metadata(item, resource_name):
     if isinstance(item, (str, int, float)):
+        val = str(item)
         if resource_name == "SQS queues" and isinstance(item, str) and "/" in item:
-            return item, item.split("/")[-1]
-        return str(item), str(item)
+            val = item.split("/")[-1]
+        elif val.startswith("arn:"):
+            val = extract_name_from_arn(val)
+        return str(item), val
 
     if isinstance(item, dict):
         id_fields = [
@@ -448,12 +511,17 @@ def get_item_metadata(item, resource_name):
         if not name:
             name = local_id
 
-        if "/" in name and not name.startswith("arn:"):
+        if name.startswith("arn:"):
+            name = extract_name_from_arn(name)
+        elif "/" in name:
             name = name.split("/")[-1]
 
         return local_id, name
 
-    return str(item), str(item)
+    val = str(item)
+    if val.startswith("arn:"):
+        val = extract_name_from_arn(val)
+    return str(item), val
 
 
 def build_data_structure(account_data, config, outputfilter):
@@ -471,7 +539,8 @@ def build_data_structure(account_data, config, outputfilter):
         "elbv2-describe-load-balancers",
         "rds-describe-db-instances",
         "redshift-describe-clusters",
-        "es-list-domain-names"
+        "es-list-domain-names",
+        "config-describe-config-rules"
     ]
 
     cytoscape_json = []
@@ -493,10 +562,12 @@ def build_data_structure(account_data, config, outputfilter):
         region = Region(account, region_json)
 
         if region.name == "global":
-            # For global services, create a virtual VPC and Subnet
+            # For global services, create a virtual VPC, AZ, and Subnet
             mock_vpc = Vpc(region, {"VpcId": "vpc-global", "CidrBlock": "Global", "Tags": []})
-            mock_subnet = Subnet(mock_vpc, {"SubnetId": "subnet-global", "CidrBlock": "Global", "Tags": []})
-            mock_vpc.addChild(mock_subnet)
+            mock_az = Az(mock_vpc, {"ZoneName": "Global"})
+            mock_subnet = Subnet(mock_az, {"SubnetId": "subnet-global", "CidrBlock": "Global", "Tags": []})
+            mock_az.addChild(mock_subnet)
+            mock_vpc.addChild(mock_az)
             region.addChild(mock_vpc)
             account.addChild(region)
 
@@ -557,11 +628,38 @@ def build_data_structure(account_data, config, outputfilter):
             # In each region, iterate through all the resource types
             nodes = get_resource_nodes(region, outputfilter)
 
-            # Create regional mock VPC and Subnet for non-VPC resources
+            # Create regional mock VPC, AZ, and Subnet for non-VPC resources
             mock_vpc = Vpc(region, {"VpcId": "vpc-non-vpc", "CidrBlock": "Non-VPC", "Tags": []})
-            mock_subnet = Subnet(mock_vpc, {"SubnetId": "subnet-non-vpc", "CidrBlock": "Non-VPC", "Tags": []})
-            mock_vpc.addChild(mock_subnet)
+            mock_az = Az(mock_vpc, {"ZoneName": "Non-VPC"})
+            mock_subnet = Subnet(mock_az, {"SubnetId": "subnet-non-vpc", "CidrBlock": "Non-VPC", "Tags": []})
+            mock_az.addChild(mock_subnet)
+            mock_vpc.addChild(mock_az)
             region.addChild(mock_vpc)
+
+            # Build a mapping of security group ID to VPC ID for the current region
+            sg_vpc_map = {}
+            try:
+                sgs_json = query_aws(account, "ec2-describe-security-groups", region)
+                if sgs_json and "SecurityGroups" in sgs_json:
+                    for sg in sgs_json["SecurityGroups"]:
+                        if "GroupId" in sg and "VpcId" in sg:
+                            sg_vpc_map[sg["GroupId"]] = sg["VpcId"]
+            except Exception:
+                pass
+
+            # Build a mapping of ElastiCache cluster name to subnet ID for the current region
+            elasticache_subnet_map = {}
+            try:
+                nis_json = query_aws(account, "ec2-describe-network-interfaces", region)
+                if nis_json and "NetworkInterfaces" in nis_json:
+                    for ni in nis_json["NetworkInterfaces"]:
+                        desc = ni.get("Description", "")
+                        if desc and desc.startswith("ElastiCache "):
+                            cluster_id = desc[12:].strip()
+                            if "SubnetId" in ni:
+                                elasticache_subnet_map[cluster_id] = ni["SubnetId"]
+            except Exception:
+                pass
 
             # Load regional non-VPC resources from stats_config
             for resource in stats_config:
@@ -615,8 +713,69 @@ def build_data_structure(account_data, config, outputfilter):
                 for item in items:
                     local_id, name = get_item_metadata(item, resource["name"])
                     slug = resource["name"].lower().replace(" ", "_")
-                    node = ReportResource(mock_subnet, local_id, name, slug, item)
-                    mock_subnet.addChild(node)
+
+                    target_parent = mock_subnet
+
+                    if resource["name"] == "Elasticache clusters":
+                        # Attempt to find the exact subnet via ENI description
+                        exact_subnet_id = elasticache_subnet_map.get(item.get("CacheClusterId"))
+                        if exact_subnet_id:
+                            for v in region.children:
+                                if v.local_id in ["vpc-non-vpc", "vpc-global"]:
+                                    continue
+                                for a in v.children:
+                                    for s in a.children:
+                                        if s.local_id == exact_subnet_id:
+                                            target_parent = s
+                                            break
+                                    if target_parent != mock_subnet:
+                                        break
+                                if target_parent != mock_subnet:
+                                    break
+
+                        # Fallback to first subnet of VPC if exact subnet wasn't found
+                        if target_parent == mock_subnet:
+                            vpc_id = None
+                            for sg_obj in item.get("SecurityGroups", []):
+                                sg_id = sg_obj.get("SecurityGroupId")
+                                if sg_id in sg_vpc_map:
+                                    vpc_id = sg_vpc_map[sg_id]
+                                    break
+                            if vpc_id:
+                                # Find first subnet of this VPC
+                                for v in region.children:
+                                    if v.local_id == vpc_id:
+                                        for a in v.children:
+                                            for s in a.children:
+                                                target_parent = s
+                                                break
+                                            if target_parent != mock_subnet:
+                                                break
+                                    if target_parent != mock_subnet:
+                                        break
+
+                    elif resource["name"] == "Autoscaling groups":
+                        zone_identifier = item.get("VPCZoneIdentifier", "")
+                        if zone_identifier:
+                            asg_subnet_ids = [s.strip() for s in zone_identifier.split(",") if s.strip()]
+                            for asg_sid in asg_subnet_ids:
+                                for v in region.children:
+                                    if v.local_id in ["vpc-non-vpc", "vpc-global"]:
+                                        continue
+                                    for a in v.children:
+                                        for s in a.children:
+                                            if s.local_id == asg_sid:
+                                                target_parent = s
+                                                break
+                                        if target_parent != mock_subnet:
+                                            break
+                                    if target_parent != mock_subnet:
+                                        break
+                                if target_parent != mock_subnet:
+                                    break
+
+                    node = ReportResource(target_parent, local_id, name, slug, item)
+                    target_parent.addChild(node)
 
             # Filter out nodes based on tags
             if len(outputfilter.get("tags", [])) > 0:

@@ -329,6 +329,168 @@
         }
     },
     {
+        "selector": "[type = \"elasticache_clusters\"], [type = \"elasticache\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/elasticache.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"log_groups\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/cloudwatch_logs.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"cloudwatch_alarms\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/cloudwatch_alarm.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"event_rules\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/eventbridge_rule.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"cloudformation_stacks\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/cloudformation_stack.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"route_tables\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/route_table.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"ec2_amis\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/ec2_ami.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"route53_hosted_zones\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/route53_hosted_zone.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"ec2_snapshots\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/ebs_snapshot.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"network_acls\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/network_acl.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"config_rules\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/config_rule.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"autoscaling_groups\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/autoscaling.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"sqs_queues\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/sqs.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"s3_buckets\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/s3.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"lambda_functions\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/lambda.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"ecr_repositories\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/ecr.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"kms_keys\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/kms.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
+        "selector": "[type = \"sns_topics\"]",
+        "css": {
+        "background-opacity": 0,
+        "background-image": "./icons/aws/sns.svg",
+        "background-fit": "contain",
+        "background-clip": "none"
+        }
+    },
+    {
         "selector": "[type = \"kinesis\"]",
         "css": {
         "background-opacity": 0,
